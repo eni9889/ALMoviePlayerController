@@ -8,6 +8,7 @@
 
 #import <UIKit/UIKit.h>
 #import <MediaPlayer/MPMoviePlayerController.h>
+#import "ALButton.h"
 
 @class ALMoviePlayerController;
 
@@ -39,6 +40,10 @@ typedef enum {
 } ALMoviePlayerControlsState;
 
 @interface ALMoviePlayerControls : UIView
+
+@property (nonatomic, strong) ALButton *fullscreenButton;
+@property (nonatomic, strong) ALButton *rateControlButton;
+
 
 /** 
  The style of the controls. Can be changed on the fly.

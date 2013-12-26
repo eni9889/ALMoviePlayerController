@@ -9,7 +9,9 @@
 #import "ALMoviePlayerControls.h"
 #import "ALMoviePlayerController.h"
 #import "ALAirplayView.h"
-#import "ALButton.h"
+#import "NIKFontAwesomeIconFactory.h"
+#import "NIKFontAwesomeIconFactory+iOS.h"
+
 #import <tgmath.h>
 #import <QuartzCore/QuartzCore.h>
 
@@ -58,7 +60,6 @@ static const CGFloat iPhoneScreenPortraitWidth = 320.f;
 @property (nonatomic, strong) ALButton *playPauseButton;
 @property (nonatomic, strong) MPVolumeView *volumeView;
 @property (nonatomic, strong) ALAirplayView *airplayView;
-@property (nonatomic, strong) ALButton *fullscreenButton;
 @property (nonatomic, strong) UILabel *timeElapsedLabel;
 @property (nonatomic, strong) UILabel *timeRemainingLabel;
 @property (nonatomic, strong) ALButton *seekForwardButton;
@@ -121,6 +122,7 @@ static const CGFloat iPhoneScreenPortraitWidth = 320.f;
     
     _durationSlider = [[UISlider alloc] init];
     _durationSlider.value = 0.f;
+    [_durationSlider setThumbImage:[UIImage imageNamed:@"VideoPlayer_Slider_Thumb"] forState:UIControlStateNormal];
     _durationSlider.continuous = YES;
     [_durationSlider addTarget:self action:@selector(durationSliderValueChanged:) forControlEvents:UIControlEventValueChanged];
     [_durationSlider addTarget:self action:@selector(durationSliderTouchBegan:) forControlEvents:UIControlEventTouchDown];
@@ -171,6 +173,7 @@ static const CGFloat iPhoneScreenPortraitWidth = 320.f;
         [_topBar addSubview:_scaleButton];
         
         _volumeView = [[MPVolumeView alloc] init];
+        [_volumeView setVolumeThumbImage:[UIImage imageNamed:@"VideoPlayer_Slider_Thumb"] forState:UIControlStateNormal];
         [_volumeView setShowsRouteButton:NO];
         [_volumeView setShowsVolumeSlider:YES];
         [_bottomBar addSubview:_volumeView];
@@ -210,6 +213,15 @@ static const CGFloat iPhoneScreenPortraitWidth = 320.f;
     [_playPauseButton addTarget:self action:@selector(playPausePressed:) forControlEvents:UIControlEventTouchUpInside];
     _playPauseButton.delegate = self;
     [_bottomBar addSubview:_playPauseButton];
+    
+    NIKFontAwesomeIconFactory *factory = [NIKFontAwesomeIconFactory barButtonItemIconFactory];
+    factory.colors = @[[UIColor whiteColor]];
+    factory.size = 22.f;
+    
+    _rateControlButton = [[ALButton alloc] init];
+    [_rateControlButton setImage:[factory createImageForIcon:NIKFontAwesomeIconCog] forState:UIControlStateNormal];
+    _rateControlButton.delegate = self;
+    [_bottomBar addSubview:_rateControlButton];
     
     _airplayView = [[ALAirplayView alloc] init];
     _airplayView.delegate = self;
@@ -407,6 +419,12 @@ static const CGFloat iPhoneScreenPortraitWidth = 320.f;
     [self performSelector:@selector(hideControls:) withObject:nil afterDelay:self.fadeDelay];
 }
 
+- (void)toggleRateControl:(UIButton *)button {
+    self.moviePlayer.playbackState == MPMoviePlaybackStatePlaying ? [self.moviePlayer pause] : [self.moviePlayer play];
+    [self performSelector:@selector(hideControls:) withObject:nil afterDelay:self.fadeDelay];
+}
+
+
 - (void)fullscreenPressed:(UIButton *)button {
     if (self.style == ALMoviePlayerControlsStyleDefault) {
         self.style = self.moviePlayer.isFullscreen ? ALMoviePlayerControlsStyleEmbedded : ALMoviePlayerControlsStyleFullscreen;
@@ -578,6 +596,11 @@ static const CGFloat iPhoneScreenPortraitWidth = 320.f;
         if (completion)
             completion();
     }
+    
+    if ([self.moviePlayer.delegate respondsToSelector:@selector(hideControls:)])
+    {
+        [self.moviePlayer.delegate hideControls:completion];
+    }
 }
 
 - (void)showLoadingIndicators {
@@ -661,9 +684,10 @@ static const CGFloat iPhoneScreenPortraitWidth = 320.f;
         CGFloat scaleHeight = 28.f;
         self.topBar.frame = CGRectMake(0, 0, self.frame.size.width, self.barHeight);
         self.fullscreenButton.frame = CGRectMake(paddingFromBezel, self.barHeight/2 - fullscreenHeight/2, fullscreenWidth, fullscreenHeight);
-        self.timeElapsedLabel.frame = CGRectMake(self.fullscreenButton.frame.origin.x + self.fullscreenButton.frame.size.width + paddingBetweenButtons, 0, labelWidth, self.barHeight);
+        self.timeElapsedLabel.frame = CGRectMake(self.fullscreenButton.frame.origin.x + self.fullscreenButton.frame.size.width + paddingBetweenButtons, 0, labelWidth * 2, self.barHeight);
         self.scaleButton.frame = CGRectMake(self.topBar.frame.size.width - paddingFromBezel - scaleWidth, self.barHeight/2 - scaleHeight/2, scaleWidth, scaleHeight);
-        self.timeRemainingLabel.frame = CGRectMake(self.scaleButton.frame.origin.x - paddingBetweenButtons - labelWidth, 0, labelWidth, self.barHeight);
+        self.scaleButton.alpha = 0.0f;
+        self.timeRemainingLabel.frame = CGRectMake(self.scaleButton.frame.origin.x - paddingBetweenButtons - labelWidth, 0, labelWidth * 2, self.barHeight);
         
         //bottom bar
         self.bottomBar.frame = CGRectMake(0, self.frame.size.height - self.barHeight, self.frame.size.width, self.barHeight);
@@ -678,6 +702,8 @@ static const CGFloat iPhoneScreenPortraitWidth = 320.f;
             self.volumeView.alpha = 1.f;
             self.volumeView.frame = CGRectMake(paddingFromBezel, self.barHeight/2 - volumeHeight/2, volumeWidth, volumeHeight);
         }
+        
+        self.rateControlButton.frame = CGRectMake(self.bottomBar.frame.size.width - (paddingFromBezel * 2) - (airplayWidth *2), self.barHeight/2 - airplayHeight/2, airplayWidth, airplayHeight);
         
         self.airplayView.frame = CGRectMake(self.bottomBar.frame.size.width - paddingFromBezel - airplayWidth, self.barHeight/2 - airplayHeight/2, airplayWidth, airplayHeight);
     }
